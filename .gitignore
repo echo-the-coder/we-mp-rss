@@ -2,6 +2,7 @@ __pycache__
 *.xml
 *.tmp
 config.yaml
+config-node.yaml
 dist/
 build/
 *.pyc
