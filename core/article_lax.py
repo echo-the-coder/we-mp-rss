@@ -18,10 +18,11 @@ class ArticleInfo():
 def laxArticle():
     info=ArticleInfo()
     session=DB.get_session()
+    active_articles = session.query(Article).filter(Article.status != DATA_STATUS.DELETED)
     #获取没有内容的文章数量 - 只查询content字段
-    info.no_content_count=session.query(Article).filter((Article.content == None) | (Article.content=='')).count()
+    info.no_content_count=active_articles.filter((Article.content == None) | (Article.content=='')).count()
     #所有文章数量 - 只查询id字段
-    info.all_count=session.query(Article.id).count()
+    info.all_count=active_articles.with_entities(Article.id).count()
     #有内容的文章数量
     info.has_content_count=info.all_count-info.no_content_count
 

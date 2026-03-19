@@ -5,7 +5,6 @@ from core.models.base import DATA_STATUS
 from core.models.article import Article,ArticleBase
 from sqlalchemy import and_, or_, desc
 from .base import success_response, error_response
-from core.config import cfg
 from apis.base import format_search_kw
 from core.print import print_warning, print_info, print_error, print_success
 from core.cache import clear_cache_pattern
@@ -239,8 +238,6 @@ async def delete_article(
             )
         # 逻辑删除文章（更新状态为deleted）
         article.status = DATA_STATUS.DELETED
-        if cfg.get("article.true_delete", False):
-            session.delete(article)
         session.commit()
         
         return success_response(None, message="文章已标记为删除")
