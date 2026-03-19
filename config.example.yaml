@@ -35,6 +35,11 @@ notice:
   dingding: "${DINGDING_WEBHOOK}"
   wechat: "${WECHAT_WEBHOOK}"
   feishu: "${FEISHU_WEBHOOK}"
+  # 飞书应用配置（用于发送二维码图片，需在飞书开放平台创建应用并开启机器人能力）
+  feishu_app:
+    app_id: "${FEISHU_APP_ID:-}"
+    app_secret: "${FEISHU_APP_SECRET:-}"
+    chat_id: "${FEISHU_CHAT_ID:-}"
   custom: "${CUSTOM_WEBHOOK}"
   
 secret: ${SECRET_KEY:-we-mp-rss}
