@@ -16,10 +16,10 @@ class MessageTask(Base):
     # 定义消息内容字段，使用 JSON 类型存储
     name = Column(String(100), nullable=False)
 
-    # 定义消息模板字段，不允许为空
-    message_template = Column(Text, nullable=False)
-    # 定义发送接口
-    web_hook_url = Column(String(500), nullable=False)
+    # 定义消息模板字段（仅失败通知/从不通知模式下可为空）
+    message_template = Column(Text, nullable=True, default="")
+    # 定义发送接口（仅失败通知/从不通知模式下可为空）
+    web_hook_url = Column(String(500), nullable=True, default="")
     # 定义请求头，JSON格式存储
     headers = Column(Text, nullable=True)
     # 定义Cookie，用于认证
@@ -30,6 +30,8 @@ class MessageTask(Base):
     cron_exp=Column(String(100),nullable='* * 1 * *')
     # 定义任务状态字段，默认值为 pending
     status = Column(Integer, default=0)
+    # 通知模式: 0=始终通知, 1=仅失败时通知, 2=从不通知
+    notify_mode = Column(Integer, default=0)
     # 定义创建时间字段，默认值为当前 UTC 时间
     created_at = Column(DateTime)
     # 定义更新时间字段，默认值为当前 UTC 时间，更新时自动更新为当前时间

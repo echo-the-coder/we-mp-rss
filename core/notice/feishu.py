@@ -161,6 +161,55 @@ def _send_card_with_image(token, chat_id, title, text, image_key):
     print(f"飞书图片卡片发送成功: chat_id={chat_id}")
 
 
+def send_feishu_text_card(app_id, app_secret, chat_id, title, text):
+    """
+    通过飞书应用 API 发送纯文本卡片消息（无图片）
+
+    参数:
+    - app_id: 飞书应用 App ID
+    - app_secret: 飞书应用 App Secret
+    - chat_id: 目标群聊 ID
+    - title: 卡片标题
+    - text: 文本内容
+    """
+    try:
+        token = _get_tenant_access_token(app_id, app_secret)
+        url = "https://open.feishu.cn/open-apis/im/v1/messages"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        card = {
+            "config": {"wide_screen_mode": True, "enable_forward": True},
+            "header": {
+                "template": "blue",
+                "title": {"content": title, "tag": "plain_text"}
+            },
+            "elements": [
+                {
+                    "tag": "div",
+                    "text": {"content": text, "tag": "lark_md"}
+                }
+            ]
+        }
+        data = {
+            "receive_id": chat_id,
+            "msg_type": "interactive",
+            "content": json.dumps(card)
+        }
+        resp = requests.post(
+            f"{url}?receive_id_type=chat_id",
+            headers=headers,
+            json=data
+        )
+        result = resp.json()
+        if result.get("code") != 0:
+            raise Exception(f"飞书消息发送失败: {result.get('msg')}")
+        print(f"飞书文本卡片发送成功: chat_id={chat_id}")
+    except Exception as e:
+        print(f"飞书文本卡片发送失败: {e}")
+
+
 def send_feishu_image_card(app_id, app_secret, chat_id, title, text, image_path):
     """
     通过飞书应用 API 发送带二维码图片的卡片消息

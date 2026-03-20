@@ -11,8 +11,7 @@ dock_build.bat
 .vscode/launch.json
 *.log
 item
-static/cache
-static/wx_qrcode.png
+static/
 data
 build
 dist

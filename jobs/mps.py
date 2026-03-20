@@ -41,6 +41,8 @@ def do_job(mp=None,task:MessageTask=None,isTest=False):
         # print("执行任务", task.mps_id)
         print(f"执行任务 (测试模式: {isTest})")
         all_count=0
+        has_error=False
+        error_msg=""
         if isTest:
             # 测试模式使用模拟数据
             mock_articles = [{
@@ -60,15 +62,29 @@ def do_job(mp=None,task:MessageTask=None,isTest=False):
                 wx.get_Articles(mp.faker_id,CallBack=UpdateArticle,Mps_id=mp.id,Mps_title=mp.mp_name, MaxPage=1,Over_CallBack=Update_Over,interval=interval)
             except Exception as e:
                 print_error(e)
-                # raise
+                has_error=True
+                error_msg=str(e)
             finally:
                 count=wx.all_count()
                 mock_articles = wx.articles
                 all_count+=count
 
-        from jobs.webhook import MessageWebHook
-        tms=MessageWebHook(task=task,feed=mp,articles=mock_articles)
-        web_hook(tms, is_test=isTest)
+        # 失败时：通过系统通知渠道发送告警
+        if has_error and not isTest:
+            from jobs.notice import sys_notice
+            sys_notice(
+                title=f"采集任务执行失败: {task.name}",
+                text=f"公众号: {mp.mp_name}\n错误信息: {error_msg}",
+                tag="任务异常"
+            )
+
+        # 配置了 web_hook_url 才发送业务通知（新文章推送）
+        has_webhook = bool(getattr(task, 'web_hook_url', '') and str(task.web_hook_url).strip())
+        if has_webhook or isTest:
+            from jobs.webhook import MessageWebHook
+            tms=MessageWebHook(task=task,feed=mp,articles=mock_articles)
+            web_hook(tms, is_test=isTest)
+
         print_success(f"任务({task.id})[{mp.mp_name}]执行成功,{count}成功条数")
         
         # 级联节点：上报任务执行结果到父节点

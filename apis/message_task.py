@@ -139,7 +139,21 @@ async def test_message_task(
             "content": "<p>这是测试文章的正文内容。</p>"
         })
         
-        # 执行测试消息发送（web_hook函数内部会处理字典类型）
+        # 未配置 web_hook_url 时，测试走系统通知渠道
+        has_webhook = bool(getattr(message_task, 'web_hook_url', '') and str(message_task.web_hook_url).strip())
+        if not has_webhook:
+            from jobs.notice import sys_notice
+            sys_notice(
+                title=f"[测试] 采集任务告警: {message_task.name}",
+                text=f"公众号: {feed.mp_name}\n这是一条测试告警消息",
+                tag="任务异常"
+            )
+            return success_response(
+                data={"task_id": task_id, "feed_name": feed.mp_name},
+                message=f"未配置WebHook地址，已通过系统通知渠道发送测试消息"
+            )
+
+        # 配置了 web_hook_url，走原有的测试流程
         from jobs.webhook import MessageWebHook, web_hook
         # 使用类型忽略注释，因为web_hook函数会处理字典和Article对象
         test_hook = MessageWebHook(  # type: ignore
@@ -147,9 +161,9 @@ async def test_message_task(
             feed=feed,
             articles=mock_articles  # type: ignore
         )
-        
+
         result = web_hook(test_hook, is_test=True)
-        
+
         return success_response(
             data={
                 "task_id": task_id,
@@ -217,8 +231,8 @@ async def run_message_task(
 
 
 class MessageTaskCreate(BaseModel):
-    message_template: str
-    web_hook_url: str
+    message_template: str = ""
+    web_hook_url: str = ""
     mps_id: str=""
     name: str=""
     message_type: int=0

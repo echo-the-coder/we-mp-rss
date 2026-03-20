@@ -31,11 +31,11 @@ redis:
   url: ${REDIS_URL:-}
 #通知
 notice:
-  #通知方式，可选dingding、wechat、feishu、custom
+  #通知渠道（以下渠道互相独立，配置了就发，可同时启用多个）
   dingding: "${DINGDING_WEBHOOK}"
   wechat: "${WECHAT_WEBHOOK}"
   feishu: "${FEISHU_WEBHOOK}"
-  # 飞书应用配置（用于发送二维码图片，需在飞书开放平台创建应用并开启机器人能力）
+  # 飞书应用 API 通知（独立渠道，与上方 feishu Webhook 互不影响。支持发送图片卡片，需在飞书开放平台创建应用并开启机器人能力）
   feishu_app:
     app_id: "${FEISHU_APP_ID:-}"
     app_secret: "${FEISHU_APP_SECRET:-}"

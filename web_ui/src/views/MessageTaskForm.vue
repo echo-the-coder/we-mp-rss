@@ -210,6 +210,10 @@ onMounted(() => {
                 <a-radio :value="0">禁用</a-radio>
               </a-radio-group>
             </a-form-item>
+
+            <a-alert type="info" style="margin-top: 8px;">
+              配置了WebHook地址时，采集到新文章会发送推送；未配置则只做采集。采集失败时始终会通过系统通知渠道发送告警。
+            </a-alert>
           </a-tab-pane>
 
           <!-- 高级配置 -->
