@@ -23,3 +23,6 @@ test.yaml
 .venv
 .idea
 .trae
+.DS_Store
+web_ui/dist/
+web_ui/package-lock.json
