@@ -17,6 +17,7 @@ from threading import Timer, Lock
 from .cookies import expire
 import json
 from core.print import print_error,print_warning,print_info,print_success
+from .qrcode_utils import is_qr_image_valid
 class Wx:
     _haslogin=False
     SESSION=None
@@ -296,6 +297,56 @@ class Wx:
                 except Exception as e:
                     print(f"二维码图片获取失败: {str(e)}")
         return self.isLock
+
+    def _wait_qrcode_ready(self, page, qrcode, timeout_ms=15000):
+        """等待二维码元素可见且图片资源完成加载。"""
+        qrcode.wait_for(state="visible", timeout=timeout_ms)
+        page.wait_for_function(
+            """(el) => {
+                if (!el) return false;
+                const src = (el.getAttribute('src') || '').trim();
+                if (!src || src.includes('default_qrcode')) return false;
+                const w = el.naturalWidth || 0;
+                const h = el.naturalHeight || 0;
+                const complete = !!el.complete;
+                const rect = el.getBoundingClientRect();
+                return complete && w > 0 && h > 0 && rect.width > 0 && rect.height > 0;
+            }""",
+            arg=qrcode,
+            timeout=timeout_ms
+        )
+
+    def _capture_valid_qrcode(self, page, qr_tag: str, max_retries: int = 3):
+        """截图并校验二维码，失败时短重试。"""
+        last_error = None
+        for retry in range(1, max_retries + 1):
+            try:
+                qrcode = page.query_selector(qr_tag)
+                if qrcode is None:
+                    raise Exception("未找到二维码元素")
+
+                self._wait_qrcode_ready(page, qrcode)
+
+                code_src = qrcode.get_attribute("src")
+                print(f"正在生成二维码图片... 第{retry}/{max_retries}次")
+                print(f"code_src:{code_src}")
+
+                qrcode.screenshot(path=self.wx_login_url)
+
+                if is_qr_image_valid(self.wx_login_url):
+                    return True
+
+                last_error = "二维码图片校验失败（疑似空白/透明）"
+                print_warning(f"{last_error}，准备重试")
+            except Exception as e:
+                last_error = str(e)
+                print_warning(f"二维码截图失败: {last_error}，准备重试")
+
+            if retry < max_retries:
+                time.sleep(1.5)
+
+        raise Exception(f"二维码图片获取失败，请重新扫码（{last_error or '未知错误'}）")
+
     def wxLogin(self, CallBack=None, NeedExit=True):
         """
         微信公众平台登录流程：
@@ -326,7 +377,7 @@ class Wx:
             driver=self.controller
             # 启动浏览器并打开微信公众平台
             print_info("正在启动浏览器...")
-            driver.start_browser()
+            driver.start_browser(dis_image=False)
             driver.open_url(self.WX_LOGIN)
             page=driver.page
 
@@ -342,20 +393,10 @@ class Wx:
             
             # 定位二维码区域
             qr_tag=".login__type__container__scan__qrcode"
-            # 获取二维码图片URL
-            qrcode = page.query_selector(qr_tag)
-            code_src=qrcode.get_attribute("src")
-            print("正在生成二维码图片...")
-            print(f"code_src:{code_src}")
-            # qrcode = page.query_selector(qr_tag)
-           
-            # 使用Playwright截图功能（添加异常处理）
-            qrcode.screenshot(path=self.wx_login_url)
+            self._capture_valid_qrcode(page, qr_tag, max_retries=3)
 
             print("二维码已保存为 wx_qrcode.png，请扫码登录...")
             self.HasCode=True
-            if os.path.getsize(self.wx_login_url)<=364:
-                raise Exception("二维码图片获取失败，请重新扫码")
             # 等待登录成功（检测二维码图片加载完成）
             print("等待扫码登录...")
             if self.Notice is not None:
